@@ -1,10 +1,9 @@
-html
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QA Suite - Monitoreo & Calibración</title>
+  <title>QA Edenred Siute - Monitoreo & Calibración</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -53,18 +52,18 @@ html
           <i class="fa-solid fa-square-poll-vertical text-2xl text-white"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight">QA Enterprise Suite</h1>
-          <p class="text-indigo-200 text-xs font-medium">Gestión Integrada de Calidad - Call Center</p>
+          <h1 class="text-xl font-bold tracking-tight">QA Edenred Suite</h1>
+          <p class="text-indigo-200 text-xs font-medium">Gestión Integrada de Calidad - BPO </p>
         </div>
       </div>
       
       <!-- App Mode Tabs switcher -->
       <div class="bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 flex">
         <button id="btn-tab-monitoreo" onclick="setAppMode('monitoreo')" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-sm">
-          <i class="fa-solid fa-clipboard-check"></i> Monitoreo Individual
+          <i class="fa-solid fa-clipboard-check"></i> Formato de monitoreo
         </button>
         <button id="btn-tab-calibracion" onclick="setAppMode('calibracion')" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white">
-          <i class="fa-solid fa-scale-balanced"></i> Sesión de Calibración
+          <i class="fa-solid fa-scale-balanced"></i> Calibración
         </button>
       </div>
 
@@ -90,7 +89,7 @@ html
           <i class="fa-solid fa-clipboard-check"></i>
         </span>
         <div>
-          <h2 class="text-sm font-bold text-slate-900" id="mode-title">Modo Monitoreo Individual Activo</h2>
+          <h2 class="text-sm font-bold text-slate-900" id="mode-title">Monitoreo Individual </h2>
           <p class="text-xs text-slate-500" id="mode-description">Utiliza este módulo para realizar las auditorías diarias de calidad a tus agentes y guardar su nota de desempeño.</p>
         </div>
       </div>
@@ -118,11 +117,14 @@ html
           <input type="text" id="agent_name" placeholder="Nombre completo del agente" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID de Llamada / Caso</label>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID de Llamada</label>
           <input type="text" id="call_id" placeholder="ID de Ticket o Grabación" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" id="lbl-qa">Ticket</label>
+          <input type="text" id="qa_name" value="N/A" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha del Registro</label>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha del Monitoreo</label>
           <input type="date" id="calibration_date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
