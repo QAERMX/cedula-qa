@@ -1,0 +1,965 @@
+html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Suite - Monitoreo & Calibración</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-card {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+      }
+    }
+    /* Custom scrollbar for gaps */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12 transition-all duration-300">
+
+  <!-- Toast Notification System -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-slate-700">
+    <span id="toast-icon" class="text-emerald-400"><i class="fa-solid fa-circle-check"></i></span>
+    <span id="toast-message" class="text-sm font-semibold">Mensaje de notificación</span>
+  </div>
+
+  <!-- Main Navigation Header -->
+  <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md no-print">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2.5 rounded-lg shadow-inner">
+          <i class="fa-solid fa-square-poll-vertical text-2xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">QA Enterprise Suite</h1>
+          <p class="text-indigo-200 text-xs font-medium">Gestión Integrada de Calidad - Call Center</p>
+        </div>
+      </div>
+      
+      <!-- App Mode Tabs switcher -->
+      <div class="bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 flex">
+        <button id="btn-tab-monitoreo" onclick="setAppMode('monitoreo')" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-sm">
+          <i class="fa-solid fa-clipboard-check"></i> Monitoreo Individual
+        </button>
+        <button id="btn-tab-calibracion" onclick="setAppMode('calibracion')" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-scale-balanced"></i> Sesión de Calibración
+        </button>
+      </div>
+
+      <!-- Quick Controls -->
+      <div class="flex gap-2">
+        <button id="btn-copiar-nota" onclick="copiarAnalistaAExperto()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
+          <i class="fa-solid fa-copy"></i> Copiar a Experto
+        </button>
+        <button onclick="resetearFormulario()" class="bg-rose-950/20 hover:bg-rose-900/40 text-rose-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-rose-900/30">
+          <i class="fa-solid fa-trash-can"></i> Limpiar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 mt-6">
+
+    <!-- Interactive Banner Mode Info -->
+    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-card">
+      <div class="flex items-center gap-3">
+        <span class="p-2 bg-indigo-600 text-white rounded-lg text-sm" id="mode-icon">
+          <i class="fa-solid fa-clipboard-check"></i>
+        </span>
+        <div>
+          <h2 class="text-sm font-bold text-slate-900" id="mode-title">Modo Monitoreo Individual Activo</h2>
+          <p class="text-xs text-slate-500" id="mode-description">Utiliza este módulo para realizar las auditorías diarias de calidad a tus agentes y guardar su nota de desempeño.</p>
+        </div>
+      </div>
+      <div class="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 flex items-center gap-1.5 no-print">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado al almacenamiento local
+      </div>
+    </div>
+    
+    <!-- Meta Data Form -->
+    <section class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 mb-6 print-card">
+      <h2 class="text-base font-bold text-slate-900 border-b pb-3 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-indigo-600"></i> Información General del Registro
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" id="lbl-qa">Analista / Auditor QA</label>
+          <input type="text" id="qa_name" value="Evaluador de Calidad 1" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div id="col-expert" class="hidden">
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Experto / Calibrador</label>
+          <input type="text" id="expert_name" value="Supervisor QA / Calibrador Experto" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Agente Evaluado</label>
+          <input type="text" id="agent_name" placeholder="Nombre completo del agente" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID de Llamada / Caso</label>
+          <input type="text" id="call_id" placeholder="ID de Ticket o Grabación" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha del Registro</label>
+          <input type="date" id="calibration_date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Campaña / Operación</label>
+          <input type="text" id="campaign" placeholder="Atención al Cliente" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div id="col-calib-method" class="hidden">
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Cálculo de Calibración</label>
+          <select id="calib_method" onchange="calcularTodo()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="align">Alineación Estricta por Criterio (Recomendado)</option>
+            <option value="diff">Por Tolerancia de Diferencia de Nota</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tratamiento de Crítico</label>
+          <select id="critical_treatment" onchange="calcularTodo()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="zero">Pone el resultado en 0% inmediatamente</option>
+            <option value="sub100">Resta 100 puntos al acumulado</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Overview Dashboard -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      
+      <!-- Card Score 1 (Always Visible) -->
+      <div id="score-card-1" class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 flex flex-col justify-between print-card">
+        <div>
+          <span id="score-card-1-tag" class="bg-blue-50 text-blue-700 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">Auditor QA</span>
+          <div class="flex items-baseline gap-2 mt-4">
+            <span class="text-5xl font-black text-slate-900" id="nota_analista_display">100.0</span>
+            <span class="text-xl font-semibold text-slate-400">/ 100 pts</span>
+          </div>
+          <p class="text-slate-500 text-xs mt-2" id="score-card-1-desc">Puntaje ponderado de la evaluación del Auditor QA.</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-600">
+          <span>Suma de puntos:</span>
+          <span class="font-bold text-slate-800" id="bruto_analista">100 / 100</span>
+        </div>
+      </div>
+
+      <!-- Card Score 2 (Only visible in Calibration mode) -->
+      <div id="score-card-2" class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 flex flex-col justify-between print-card hidden">
+        <div>
+          <span class="bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">Calibrador Experto</span>
+          <div class="flex items-baseline gap-2 mt-4">
+            <span class="text-5xl font-black text-indigo-600" id="nota_experto_display">100.0</span>
+            <span class="text-xl font-semibold text-indigo-400">/ 100 pts</span>
+          </div>
+          <p class="text-indigo-500 text-xs mt-2">Nota patrón establecida por el Calibrador/Supervisor.</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-600">
+          <span>Suma de puntos:</span>
+          <span class="font-bold text-slate-800" id="bruto_experto">100 / 100</span>
+        </div>
+      </div>
+
+      <!-- Card Index / Status (Adapts dynamically to the active mode) -->
+      <div id="score-card-status" class="bg-white rounded-xl shadow-sm p-6 border border-indigo-100 bg-gradient-to-b from-indigo-50/20 to-white flex flex-col justify-between print-card lg:col-span-2">
+        <div>
+          <span id="status-card-tag" class="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">Desempeño</span>
+          <div class="flex items-baseline gap-2 mt-4">
+            <span class="text-6xl font-black text-emerald-600" id="status_pct_display">100.0%</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2 mt-3">
+            <div id="status_progress_bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div class="text-xs text-slate-500">
+            <span id="status-card-desc">Estado del Monitoreo:</span>
+            <span id="status_badge" class="font-extrabold text-emerald-600 ml-1">EXCELENTE</span>
+          </div>
+          <div class="text-[11px] text-slate-400" id="status-meta">Meta de Aprobación: ≥ 85.0%</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active Form Table -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden mb-6 print-card">
+      <div class="bg-slate-800 text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-2">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider" id="table-title">Matriz de Evaluación de Calidad</h2>
+          <p class="text-[11px] text-slate-400" id="table-subtitle">Asigna calificaciones con base en los comportamientos observados.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="marcarTodo('avanzado')" class="bg-indigo-600 hover:bg-indigo-700 text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded transition">
+            Avanzado Total
+          </button>
+          <button onclick="marcarTodo('intermedio')" class="bg-slate-700 hover:bg-slate-600 text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded transition">
+            Intermedio Total
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider">
+              <th class="py-3 px-4 w-44">Competencia (Peso)</th>
+              <th class="py-3 px-4">Comportamiento (% de Comp.)</th>
+              <th class="py-3 px-3 text-center w-16">Puntos</th>
+              <th class="py-3 px-4 text-center w-[250px] bg-blue-50/50" id="th-qa-eval">Calificación Monitoreo</th>
+              <th class="py-3 px-4 text-center w-[250px] bg-indigo-50/50 hidden" id="th-expert-eval">Calificación Experto</th>
+              <th class="py-3 px-4 text-center w-24 hidden" id="th-align">¿Alineado?</th>
+            </tr>
+          </thead>
+          <tbody id="calibrator-tbody">
+            <!-- Table Rows dynamically generated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Calibration Gap Analysis / Action Plan / Comments -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      
+      <!-- Left Box: Gap Report (Calibration mode) / Feedback (Monitoring mode) -->
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 flex flex-col print-card">
+        <h3 class="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2 border-b pb-2 uppercase tracking-wide" id="left-box-title">
+          <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Desviaciones Detectadas (Gaps)
+        </h3>
+        <div id="gap_list_container" class="flex-grow space-y-3 overflow-y-auto max-h-[380px] pr-2 custom-scrollbar">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Right Box: Action Plan and Signatures -->
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 flex flex-col justify-between print-card">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2 border-b pb-2 uppercase tracking-wide" id="right-box-title">
+            <i class="fa-solid fa-handshake text-indigo-600"></i> Plan de Acción y Acuerdos de Sesión
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" id="lbl-discussion">Análisis de la Brecha / Discusión</label>
+              <textarea id="gap_discussion" rows="3" placeholder="Ingresa los motivos de las diferencias encontradas o puntos notables de la llamada..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" id="lbl-commitments">Compromisos del Agente / Homologaciones</label>
+              <textarea id="action_plan" rows="3" placeholder="Define planes de mejora y acuerdos establecidos con los participantes..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100">
+          <div class="text-center">
+            <div class="border-b border-dashed border-slate-300 h-10 mb-1"></div>
+            <p class="text-xs font-semibold text-slate-700" id="sig_qa">Firma Analista / Evaluador</p>
+            <p class="text-[9px] text-slate-400">Fecha y Firma Digital</p>
+          </div>
+          <div class="text-center">
+            <div class="border-b border-dashed border-slate-300 h-10 mb-1"></div>
+            <p class="text-xs font-semibold text-slate-700" id="sig_expert">Firma Agente / Experto</p>
+            <p class="text-[9px] text-slate-400">Fecha y Firma Digital</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Actions Footer Button Area -->
+    <div class="flex flex-wrap justify-between items-center gap-4 no-print bg-slate-800 text-white p-4 rounded-xl shadow-md">
+      <div class="text-xs font-medium">
+        <span id="footer-status-tag">Resultado:</span> <span id="footer_pct" class="text-emerald-400 font-extrabold text-lg">100.0%</span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 uppercase tracking-wide">
+          <i class="fa-solid fa-print"></i> Guardar PDF / Imprimir
+        </button>
+        <button onclick="guardarEnHistorial()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 uppercase tracking-wide">
+          <i class="fa-solid fa-save"></i> Guardar Historial
+        </button>
+      </div>
+    </div>
+
+    <!-- Saved History Table (Local) -->
+    <section class="mt-8 bg-white rounded-xl shadow-sm p-6 border border-slate-200/80 no-print">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+          <i class="fa-solid fa-database text-slate-500"></i> Registros de Calidad Guardados (Local Storage)
+        </h3>
+        <button onclick="limpiarHistorialCompleto()" class="text-xs text-rose-500 hover:text-rose-700 font-bold transition">
+          <i class="fa-solid fa-trash-arrow-up"></i> Vaciar Historial
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left text-xs">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+              <th class="py-3 px-4">Fecha</th>
+              <th class="py-3 px-4">Tipo</th>
+              <th class="py-3 px-4">ID Caso</th>
+              <th class="py-3 px-4">Agente Evaluado</th>
+              <th class="py-3 px-4">QA/Auditor</th>
+              <th class="py-3 px-4 text-center">Nota QA %</th>
+              <th class="py-3 px-4 text-center">Nota Exp. %</th>
+              <th class="py-3 px-4 text-center">Alineación / Resultado %</th>
+              <th class="py-3 px-4 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="9" class="py-8 text-center text-slate-400 italic">No hay registros guardados en la base de datos de tu navegador.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // State variable to manage App Mode: 'monitoreo' or 'calibracion'
+    let currentMode = 'monitoreo';
+
+    // Exact quality schema mapping points and structure from the user's image
+    const qualitySchema = [
+      {
+        id: "pasion_cliente",
+        name: "Pasión por el Cliente",
+        weight: 30, // 30% of final score
+        behaviors: [
+          { id: "respeto", name: "Respeto", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "personalizacion", name: "Personalización", pct: 20, maxScore: 4, scores: { avanzado: 4, intermedio: 2, principiante: 0, no_apto: -100 } },
+          { id: "empatia", name: "Empatía", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "lenguaje_positivo", name: "Lenguaje positivo", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "actitud_servicio", name: "Actitud de Servicio", pct: 27, maxScore: 8, scores: { avanzado: 8, intermedio: 4, principiante: 0, no_apto: -100 } }
+        ]
+      },
+      {
+        id: "comunicacion",
+        name: "Comunicación",
+        weight: 30, // 30% of final score
+        behaviors: [
+          { id: "atencion_activa", name: "Atención activa", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "emision_efectiva", name: "Emisión efectiva", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "cadencia", name: "Cadencia", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "asertividad", name: "Asertividad", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } },
+          { id: "identidad_corp", name: "Identidad corporativa", pct: 20, maxScore: 6, scores: { avanzado: 6, intermedio: 3, principiante: 0, no_apto: -100 } }
+        ]
+      },
+      {
+        id: "responsabilidad",
+        name: "Responsabilidad",
+        weight: 40, // 40% of final score
+        behaviors: [
+          { id: "uso_recursos", name: "Uso de recursos", pct: 20, maxScore: 8, scores: { avanzado: 8, intermedio: 4, principiante: 0, no_apto: -100 } },
+          { id: "procesos", name: "Procesos", pct: 30, maxScore: 12, scores: { avanzado: 12, intermedio: 6, principiante: 0, no_apto: -100 } },
+          { id: "seguimiento", name: "Seguimiento", pct: 25, maxScore: 10, scores: { avanzado: 10, intermedio: 5, principiante: 0, no_apto: -100 } },
+          { id: "documentacion", name: "Documentación", pct: 25, maxScore: 10, scores: { avanzado: 10, intermedio: 5, principiante: 0, no_apto: -100 } }
+        ]
+      }
+    ];
+
+    // On Load Initialization
+    window.onload = function() {
+      document.getElementById('calibration_date').valueAsDate = new Date();
+      renderTable();
+      setAppMode('monitoreo'); // Start in Monitoreo individual mode by default
+      cargarHistorial();
+    }
+
+    // Toggle app modes gracefully
+    function setAppMode(mode) {
+      currentMode = mode;
+      
+      // Update Tab CSS
+      const btnMon = document.getElementById("btn-tab-monitoreo");
+      const btnCal = document.getElementById("btn-tab-calibracion");
+      const colExpert = document.getElementById("col-expert");
+      const colCalibMethod = document.getElementById("col-calib-method");
+      
+      // Card elements
+      const scoreCard2 = document.getElementById("score-card-2");
+      const scoreCardStatus = document.getElementById("score-card-status");
+      
+      // Headers & descriptions
+      const modeIcon = document.getElementById("mode-icon");
+      const modeTitle = document.getElementById("mode-title");
+      const modeDesc = document.getElementById("mode-description");
+      const tableTitle = document.getElementById("table-title");
+      const tableSubtitle = document.getElementById("table-subtitle");
+      const leftBoxTitle = document.getElementById("left-box-title");
+      const rightBoxTitle = document.getElementById("right-box-title");
+      
+      const lblQa = document.getElementById("lbl-qa");
+      const lblDiscussion = document.getElementById("lbl-discussion");
+      const lblCommitments = document.getElementById("lbl-commitments");
+      const btnCopiarNota = document.getElementById("btn-copiar-nota");
+      
+      // Show/hide specific table headers
+      const thExpertEval = document.getElementById("th-expert-eval");
+      const thAlign = document.getElementById("th-align");
+      const thQaEval = document.getElementById("th-qa-eval");
+
+      if (mode === 'monitoreo') {
+        // Monitoreo Styling
+        btnMon.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-sm";
+        btnCal.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+        
+        colExpert.classList.add("hidden");
+        colCalibMethod.classList.add("hidden");
+        scoreCard2.classList.add("hidden");
+        btnCopiarNota.classList.add("hidden");
+        
+        thExpertEval.classList.add("hidden");
+        thAlign.classList.add("hidden");
+        thQaEval.innerText = "Calificación Monitoreo";
+        
+        modeIcon.innerHTML = `<i class="fa-solid fa-clipboard-check"></i>`;
+        modeTitle.innerText = "Modo Monitoreo Individual Activo";
+        modeDesc.innerText = "Utiliza este módulo para realizar las auditorías de calidad individuales del agente y guardar su nota.";
+        tableTitle.innerText = "Matriz de Calificación de Auditoría";
+        tableSubtitle.innerText = "Asigna una valoración al desempeño para calcular la nota del agente.";
+        
+        document.getElementById("score-card-1-tag").innerText = "Nota Final del Agente";
+        document.getElementById("score-card-1-desc").innerText = "Resultado global consolidado sobre la base de 100 puntos.";
+        document.getElementById("status-card-tag").innerText = "Estatus de Auditoría";
+        document.getElementById("status-card-desc").innerText = "Estatus de nota:";
+        document.getElementById("status-meta").innerText = "Nota mínima aprobatoria: ≥ 85.0%";
+        
+        leftBoxTitle.innerHTML = `<i class="fa-solid fa-comment-dots text-indigo-600"></i> Feedback / Observaciones`;
+        rightBoxTitle.innerHTML = `<i class="fa-solid fa-bullseye text-emerald-600"></i> Plan de Mejora / Compromisos del Agente`;
+        lblDiscussion.innerText = "Observaciones de la Llamada / Feedback del Auditor";
+        lblCommitments.innerText = "Planes de acción y compromisos establecidos con el agente";
+        lblQa.innerText = "Analista / Auditor QA";
+
+        // Query and hide column selects in the body table
+        document.querySelectorAll(".expert-col-cell").forEach(cell => cell.classList.add("hidden"));
+        document.querySelectorAll(".match-col-cell").forEach(cell => cell.classList.add("hidden"));
+
+      } else {
+        // Calibración Styling
+        btnCal.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-sm";
+        btnMon.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+        
+        colExpert.classList.remove("hidden");
+        colCalibMethod.classList.remove("hidden");
+        scoreCard2.classList.remove("hidden");
+        btnCopiarNota.classList.remove("hidden");
+        
+        thExpertEval.classList.remove("hidden");
+        thAlign.classList.remove("hidden");
+        thQaEval.innerText = "Calificación Analista";
+        
+        modeIcon.innerHTML = `<i class="fa-solid fa-scale-balanced"></i>`;
+        modeTitle.innerText = "Modo Sesión de Calibración Activo";
+        modeDesc.innerText = "Compara la nota de un analista QA contra la nota calibrada por el experto, calculando el % de alineación final.";
+        tableTitle.innerText = "Matriz Comparativa de Calibración";
+        tableSubtitle.innerText = "Inserta las calificaciones otorgadas por el analista y el experto para confrontar criterios.";
+        
+        document.getElementById("score-card-1-tag").innerText = "Evaluación Analista QA";
+        document.getElementById("score-card-1-desc").innerText = "Puntaje total ponderado obtenido según el Analista QA.";
+        document.getElementById("status-card-tag").innerText = "Índice de Calibración";
+        document.getElementById("status-card-desc").innerText = "Estado de Calibración:";
+        document.getElementById("status-meta").innerText = "Meta Corporativa de Alineación: ≥ 90.0%";
+        
+        leftBoxTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Desviaciones Detectadas (Gaps)`;
+        rightBoxTitle.innerHTML = `<i class="fa-solid fa-handshake text-indigo-600"></i> Plan de Acción y Homologaciones de la Sesión`;
+        lblDiscussion.innerText = "Discusión técnica de criterios / Motivos de Desalineación";
+        lblCommitments.innerText = "Homologación final y acuerdos para unificar el criterio evaluativo";
+        lblQa.innerText = "Analista QA Evaluado";
+
+        // Query and show column selects in the body table
+        document.querySelectorAll(".expert-col-cell").forEach(cell => cell.classList.remove("hidden"));
+        document.querySelectorAll(".match-col-cell").forEach(cell => cell.classList.remove("hidden"));
+      }
+
+      calcularTodo();
+    }
+
+    // Generate evaluation matrix elements
+    function renderTable() {
+      const tbody = document.getElementById("calibrator-tbody");
+      tbody.innerHTML = "";
+
+      qualitySchema.forEach((competence) => {
+        const behaviorsCount = competence.behaviors.length;
+        
+        competence.behaviors.forEach((beh, idx) => {
+          const isFirstRow = idx === 0;
+          const tr = document.createElement("tr");
+          tr.className = "border-b border-slate-200 hover:bg-slate-50/50 transition-colors";
+          
+          if (isFirstRow) {
+            tr.innerHTML += `
+              <td class="py-4 px-4 font-bold text-slate-900 align-middle bg-slate-50/70" rowspan="${behaviorsCount}">
+                <div class="text-xs uppercase tracking-wider">${competence.name}</div>
+                <div class="text-indigo-600 text-[10px] font-extrabold mt-1">Peso: ${competence.weight}%</div>
+              </td>
+            `;
+          }
+
+          tr.innerHTML += `
+            <td class="py-4 px-4 align-middle">
+              <span class="font-bold text-slate-800 text-xs block">${beh.name}</span>
+              <span class="text-slate-400 text-[10px] font-semibold block mt-0.5">Sub-Peso: ${beh.pct}%</span>
+            </td>
+            <td class="py-4 px-3 text-center font-bold text-slate-500 align-middle text-xs">
+              ${beh.maxScore}
+            </td>
+            <!-- Analista Evaluation -->
+            <td class="py-3 px-4 bg-blue-50/30 align-middle">
+              <select id="analista_${beh.id}" onchange="calcularTodo()" class="w-full bg-white border border-blue-200 rounded px-2 py-1.5 text-xs font-semibold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-400">
+                <option value="avanzado">Avanzado (${beh.scores.avanzado} pts)</option>
+                <option value="intermedio">Intermedio (${beh.scores.intermedio} pts)</option>
+                <option value="principiante" selected>Principiante (${beh.scores.principiante} pts)</option>
+                <option value="no_apto">No Apto (${beh.scores.no_apto} pts)</option>
+              </select>
+            </td>
+            <!-- Experto Evaluation -->
+            <td class="py-3 px-4 bg-indigo-50/30 align-middle expert-col-cell">
+              <select id="experto_${beh.id}" onchange="calcularTodo()" class="w-full bg-white border border-indigo-200 rounded px-2 py-1.5 text-xs font-semibold text-indigo-950 focus:outline-none focus:ring-1 focus:ring-indigo-400">
+                <option value="avanzado">Avanzado (${beh.scores.avanzado} pts)</option>
+                <option value="intermedio">Intermedio (${beh.scores.intermedio} pts)</option>
+                <option value="principiante" selected>Principiante (${beh.scores.principiante} pts)</option>
+                <option value="no_apto">No Apto (${beh.scores.no_apto} pts)</option>
+              </select>
+            </td>
+            <!-- Alignment status badge cell -->
+            <td class="py-3 px-4 text-center align-middle match-col-cell">
+              <span id="match_badge_${beh.id}">
+                <i class="fa-solid fa-circle-question text-slate-300"></i>
+              </span>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    // Mathematical Engine for Score and Calibration Calculations
+    function calcularTodo() {
+      let totalAnalista = 0;
+      let totalExperto = 0;
+      
+      let hasNoAptoAnalista = false;
+      let hasNoAptoExperto = false;
+
+      let matchingBehaviors = 0;
+      let totalBehaviors = 0;
+
+      let gaps = [];
+
+      const criticalTreatment = document.getElementById("critical_treatment").value;
+
+      qualitySchema.forEach(comp => {
+        comp.behaviors.forEach(beh => {
+          totalBehaviors++;
+
+          const valAnalista = document.getElementById(`analista_${beh.id}`).value;
+          const valExperto = document.getElementById(`experto_${beh.id}`).value;
+
+          // Score fetch
+          let scoreA = beh.scores[valAnalista];
+          let scoreE = beh.scores[valExperto];
+
+          if (valAnalista === 'no_apto') hasNoAptoAnalista = true;
+          if (valExperto === 'no_apto') hasNoAptoExperto = true;
+
+          totalAnalista += scoreA;
+          totalExperto += scoreE;
+
+          // Setup dynamic feedback gaps (In Calibration mode)
+          const matchBadge = document.getElementById(`match_badge_${beh.id}`);
+          if (matchBadge) {
+            if (valAnalista === valExperto) {
+              matchingBehaviors++;
+              matchBadge.innerHTML = `<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center justify-center gap-1"><i class="fa-solid fa-check"></i> SÍ</span>`;
+            } else {
+              matchBadge.innerHTML = `<span class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center justify-center gap-1"><i class="fa-solid fa-xmark"></i> NO</span>`;
+              gaps.push({
+                competence: comp.name,
+                behavior: beh.name,
+                analystVal: valAnalista,
+                analystScore: scoreA,
+                expertVal: valExperto,
+                expertScore: scoreE
+              });
+            }
+          }
+        });
+      });
+
+      // Critical "No Apto" rules enforcement
+      if (criticalTreatment === "zero") {
+        if (hasNoAptoAnalista) totalAnalista = 0;
+        if (hasNoAptoExperto) totalExperto = 0;
+      } else {
+        if (totalAnalista < 0) totalAnalista = 0;
+        if (totalExperto < 0) totalExperto = 0;
+      }
+
+      totalAnalista = Math.min(100, Math.max(0, totalAnalista));
+      totalExperto = Math.min(100, Math.max(0, totalExperto));
+
+      // Display Final scores inside Dashboard
+      document.getElementById("nota_analista_display").innerText = totalAnalista.toFixed(1);
+      document.getElementById("bruto_analista").innerText = `${totalAnalista} / 100`;
+
+      document.getElementById("nota_experto_display").innerText = totalExperto.toFixed(1);
+      document.getElementById("bruto_experto").innerText = `${totalExperto} / 100`;
+
+      // Status Dashboard update depending on App Mode
+      const progressBar = document.getElementById("status_progress_bar");
+      const statusBadge = document.getElementById("status_badge");
+      const statusPctDisplay = document.getElementById("status_pct_display");
+      const footerPct = document.getElementById("footer_pct");
+
+      if (currentMode === 'monitoreo') {
+        // Individual evaluation score
+        const scoreVal = totalAnalista;
+        statusPctDisplay.innerText = `${scoreVal.toFixed(1)}%`;
+        footerPct.innerText = `${scoreVal.toFixed(1)}%`;
+        progressBar.style.width = `${scoreVal}%`;
+
+        // Style score badge
+        if (scoreVal >= 90) {
+          progressBar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "EXCELENTE";
+          statusBadge.className = "font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        } else if (scoreVal >= 85) {
+          progressBar.className = "bg-blue-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "SATISFACTORIO (Aprobado)";
+          statusBadge.className = "font-extrabold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        } else if (scoreVal >= 70) {
+          progressBar.className = "bg-amber-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "NECESITA MEJORA";
+          statusBadge.className = "font-extrabold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        } else {
+          progressBar.className = "bg-rose-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "REPROBADO (Crítico)";
+          statusBadge.className = "font-extrabold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        }
+
+        // Render Feedback info panel on the left box
+        renderFeedbackBox(hasNoAptoAnalista, totalAnalista);
+
+      } else {
+        // Calibration comparison %
+        let calibrationPct = 0;
+        const calibMethod = document.getElementById("calib_method").value;
+
+        if (calibMethod === "align") {
+          // Align by criteria
+          calibrationPct = (matchingBehaviors / totalBehaviors) * 100;
+        } else {
+          // Absolute score difference tolerance
+          const scoreDiff = Math.abs(totalAnalista - totalExperto);
+          calibrationPct = Math.max(0, 100 - scoreDiff);
+        }
+
+        statusPctDisplay.innerText = `${calibrationPct.toFixed(1)}%`;
+        footerPct.innerText = `${calibrationPct.toFixed(1)}%`;
+        progressBar.style.width = `${calibrationPct}%`;
+
+        if (calibrationPct >= 90) {
+          progressBar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "CUMPLE ALINEACIÓN";
+          statusBadge.className = "font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        } else if (calibrationPct >= 80) {
+          progressBar.className = "bg-amber-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "TOLERANCIA LÍMITE";
+          statusBadge.className = "font-extrabold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        } else {
+          progressBar.className = "bg-rose-500 h-2 rounded-full transition-all duration-500";
+          statusBadge.innerText = "DESALINEADO (Mesa de Calibración)";
+          statusBadge.className = "font-extrabold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded text-xs uppercase";
+        }
+
+        // Render calibration gap list in the left box
+        renderGaps(gaps);
+      }
+
+      // Link Live Signature inputs
+      const qaNameInput = document.getElementById("qa_name").value || "Evaluador QA";
+      const expertNameInput = document.getElementById("expert_name").value || "Calibrador Experto";
+      const agentNameInput = document.getElementById("agent_name").value || "Agente Evaluado";
+
+      document.getElementById("sig_qa").innerText = `Firma: ${qaNameInput}`;
+      if (currentMode === 'monitoreo') {
+        document.getElementById("sig_expert").innerText = `Firma: ${agentNameInput}`;
+      } else {
+        document.getElementById("sig_expert").innerText = `Firma: ${expertNameInput}`;
+      }
+    }
+
+    // Dynamic generator of Calibration Gaps
+    function renderGaps(gaps) {
+      const container = document.getElementById("gap_list_container");
+      if (gaps.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div class="bg-emerald-50 text-emerald-600 p-4 rounded-full mb-3 shadow-inner">
+              <i class="fa-solid fa-circle-check text-4xl"></i>
+            </div>
+            <p class="font-bold text-slate-700 text-sm">Criterio 100% Homologado</p>
+            <p class="text-[11px] text-slate-400 mt-1">El Analista QA y el Experto coinciden perfectamente.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = `<p class="text-xs text-slate-500 mb-2 font-semibold">Hay un total de <strong>${gaps.length} desviaciones</strong> en esta calibración:</p><div class="space-y-2">`;
+      gaps.forEach((gap, index) => {
+        html += `
+          <div class="p-3 bg-amber-50/50 rounded-lg border border-amber-200/60 text-xs">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-800">${index + 1}. ${gap.behavior}</span>
+              <span class="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-extrabold tracking-wide uppercase">${gap.competence}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-amber-200/30">
+              <div>
+                <span class="text-slate-400 text-[10px] block">Analista QA otorgó:</span>
+                <span class="text-blue-700 font-bold block capitalize">${gap.analystVal.replace('_', ' ')} (${gap.analystScore} pts)</span>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] block">Calibrador Experto:</span>
+                <span class="text-indigo-800 font-bold block capitalize">${gap.expertVal.replace('_', ' ')} (${gap.expertScore} pts)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // Dynamic generator of Monitoreo Feedback Helper
+    function renderFeedbackBox(hasNoApto, finalScore) {
+      const container = document.getElementById("gap_list_container");
+      
+      let badgeColor = "bg-emerald-100 text-emerald-800";
+      let textStatus = "Aprobado";
+      let summaryText = "Excelente rendimiento observado. Cumple los estándares operativos.";
+
+      if (hasNoApto) {
+        badgeColor = "bg-rose-100 text-rose-800";
+        textStatus = "Fallo Crítico Activado";
+        summaryText = "El agente ha incurrido en un comportamiento 'No Apto' afectando la calificación global.";
+      } else if (finalScore < 85) {
+        badgeColor = "bg-amber-100 text-amber-800";
+        textStatus = "Bajo Desempeño";
+        summaryText = "Nota por debajo de la meta aprobatoria. Se requiere plan de acción correctivo inmediato.";
+      }
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Diagnóstico Rápido de Calidad</h4>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="${badgeColor} text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">${textStatus}</span>
+              <span class="text-slate-500 text-xs font-semibold">Nota: ${finalScore.toFixed(1)}%</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2.5 leading-relaxed">${summaryText}</p>
+          </div>
+          
+          <div class="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs">
+            <h4 class="font-bold text-slate-700 uppercase tracking-wide mb-1">Pautas para el Feedback</h4>
+            <ul class="list-disc pl-4 space-y-1 mt-2 text-slate-600 leading-relaxed">
+              <li>Inicia destacando los logros del agente (Enfoque en empatía y personalización).</li>
+              <li>Revisa en conjunto las áreas con puntaje intermedio o principiante.</li>
+              <li>Establece compromisos específicos para la siguiente llamada.</li>
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper: Mark all rows as Avanzado or Intermedio
+    function marcarTodo(level) {
+      qualitySchema.forEach(comp => {
+        comp.behaviors.forEach(beh => {
+          document.getElementById(`analista_${beh.id}`).value = level;
+          const selectExp = document.getElementById(`experto_${beh.id}`);
+          if (selectExp) selectExp.value = level;
+        });
+      });
+      calcularTodo();
+      showToast("Cédula ajustada rápidamente", "info");
+    }
+
+    // Helper: Clone evaluation answers
+    function copiarAnalistaAExperto() {
+      qualitySchema.forEach(comp => {
+        comp.behaviors.forEach(beh => {
+          const valAnalista = document.getElementById(`analista_${beh.id}`).value;
+          document.getElementById(`experto_${beh.id}`).value = valAnalista;
+        });
+      });
+      calcularTodo();
+      showToast("Copia de notas ejecutada correctamente", "success");
+    }
+
+    // Reset whole form state
+    function resetearFormulario() {
+      qualitySchema.forEach(comp => {
+        comp.behaviors.forEach(beh => {
+          document.getElementById(`analista_${beh.id}`).value = "avanzado";
+          const selectExp = document.getElementById(`experto_${beh.id}`);
+          if (selectExp) selectExp.value = "avanzado";
+        });
+      });
+      document.getElementById("gap_discussion").value = "";
+      document.getElementById("action_plan").value = "";
+      document.getElementById("call_id").value = "";
+      document.getElementById("agent_name").value = "";
+      calcularTodo();
+      showToast("Formulario limpio y restablecido", "info");
+    }
+
+    // Database: Save Current Record to Local Storage
+    function guardarEnHistorial() {
+      const callId = document.getElementById("call_id").value || "N/A";
+      const qaName = document.getElementById("qa_name").value || "Sin Nombre";
+      const expertName = document.getElementById("expert_name").value || "Sin Nombre";
+      const agentName = document.getElementById("agent_name").value || "Sin Nombre";
+      const fecha = document.getElementById("calibration_date").value || new Date().toISOString().split('T')[0];
+      
+      const notaQA = parseFloat(document.getElementById("nota_analista_display").innerText);
+      const notaExp = parseFloat(document.getElementById("nota_experto_display").innerText);
+      const finalResultPct = parseFloat(document.getElementById("status_pct_display").innerText);
+
+      const record = {
+        id: Date.now(),
+        tipo: currentMode === 'monitoreo' ? 'Monitoreo' : 'Calibración',
+        fecha,
+        callId,
+        agentName,
+        qaName,
+        expertName: currentMode === 'monitoreo' ? '-' : expertName,
+        notaQA,
+        notaExp: currentMode === 'monitoreo' ? '-' : notaExp,
+        finalResultPct
+      };
+
+      let history = JSON.parse(localStorage.getItem("qa_combined_history") || "[]");
+      history.unshift(record);
+      localStorage.setItem("qa_combined_history", JSON.stringify(history));
+
+      cargarHistorial();
+      showToast("Registro guardado con éxito", "success");
+    }
+
+    // Load logs from storage
+    function cargarHistorial() {
+      const history = JSON.parse(localStorage.getItem("qa_combined_history") || "[]");
+      const tbody = document.getElementById("history-tbody");
+
+      if (history.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-8 text-center text-slate-400 italic">No hay registros guardados en el almacenamiento local.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      history.forEach(rec => {
+        const typeBadge = rec.tipo === 'Monitoreo' 
+          ? `<span class="bg-blue-50 text-blue-800 text-[9px] font-bold px-2 py-0.5 rounded">Monitoreo</span>`
+          : `<span class="bg-indigo-50 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded">Calibración</span>`;
+        
+        const notaExpDisplay = rec.notaExp === '-' ? '-' : rec.notaExp.toFixed(1);
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-medium text-slate-700">${rec.fecha}</td>
+          <td class="py-3 px-4">${typeBadge}</td>
+          <td class="py-3 px-4 font-semibold text-indigo-600">${rec.callId}</td>
+          <td class="py-3 px-4 text-slate-700 font-bold">${rec.agentName}</td>
+          <td class="py-3 px-4 text-slate-500">${rec.qaName}</td>
+          <td class="py-3 px-4 text-center font-bold text-slate-700">${rec.notaQA.toFixed(1)}%</td>
+          <td class="py-3 px-4 text-center text-slate-500">${notaExpDisplay}${rec.notaExp !== '-' ? '%' : ''}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="bg-slate-900 text-slate-100 font-extrabold px-2.5 py-1 rounded text-[11px]">${rec.finalResultPct.toFixed(1)}%</span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="eliminarRegistro(${rec.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs transition">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Delete single log entry
+    function eliminarRegistro(id) {
+      let history = JSON.parse(localStorage.getItem("qa_combined_history") || "[]");
+      history = history.filter(item => item.id !== id);
+      localStorage.setItem("qa_combined_history", JSON.stringify(history));
+      cargarHistorial();
+      showToast("Registro eliminado de la base de datos", "error");
+    }
+
+    // Clear entire storage database
+    function limpiarHistorialCompleto() {
+      if(confirm("¿Estás absolutamente seguro de que deseas eliminar TODOS los registros guardados? Esta acción es irreversible.")) {
+        localStorage.removeItem("qa_combined_history");
+        cargarHistorial();
+        showToast("Todo el historial ha sido eliminado", "error");
+      }
+    }
+
+    // Beautiful Custom Notifications (Toast)
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById("toast");
+      const icon = document.getElementById("toast-icon");
+      const msgSpan = document.getElementById("toast-message");
+
+      msgSpan.innerText = message;
+
+      if (type === 'success') {
+        icon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+        icon.className = "text-emerald-400 text-lg";
+      } else if (type === 'error') {
+        icon.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+        icon.className = "text-rose-400 text-lg";
+      } else {
+        icon.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
+        icon.className = "text-blue-400 text-lg";
+      }
+
+      toast.className = "fixed bottom-5 right-5 z-50 transform translate-y-0 opacity-100 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-slate-700";
+
+      setTimeout(() => {
+        toast.className = "fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-slate-700";
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
